@@ -315,7 +315,7 @@ class OneDPotentials: NSObject, ObservableObject {
     func startPotential(xMin: Double, xMax: Double, xStep: Double) {
         var count = 0
         newXArray.append(xMin)
-        newVArray.append(0.0)
+        newVArray.append(100000.0)
         
         count = newXArray.count
         let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
@@ -325,7 +325,7 @@ class OneDPotentials: NSObject, ObservableObject {
     func finishPotential(xMin: Double, xMax: Double, xStep: Double) {
         var count = 0
         newXArray.append(xMax)
-        newVArray.append(0.0)
+        newVArray.append(100000.0)
         
         count = newXArray.count
         let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
