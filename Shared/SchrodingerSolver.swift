@@ -10,10 +10,15 @@ import SwiftUI
 import CorePlot
 
 class SchrodingerSolver: NSObject, ObservableObject {
+    @Published var xArray = [Double]() // Array holding x-values for the potential
+    @Published var VArray = [Double]() // Array holding the potentials V(x)
     @Published var enableButton = true
     
     var plotDataModel: PlotDataClass? = nil
     
+    func getWavefunction() async {
+        
+    }
     
     /// setButton Enable
     /// Toggles the state of the Enable Button on the Main Thread

@@ -18,6 +18,9 @@ class OneDPotentials: NSObject, ObservableObject {
     var xMax = 1.0
     var xStep = 0.1
     var hbar2overm = 1.0 // Change this later...
+    var newXArray = [Double]()
+    var newVArray = [Double]()
+    var newDataPoints: [plotDataType] =  []
     var plotDataModel: PlotDataClass? = nil
     
     @MainActor init(withData data: Bool) {
@@ -29,172 +32,179 @@ class OneDPotentials: NSObject, ObservableObject {
     
     func setPotential() async {
         await calculatePotential(potentialType: potentialType, xMin: xMin, xMax: xMax, xStep: xStep)
+        
+        await updateXArray(xArray: newXArray)
+        await updateVArray(VArray: newVArray)
+        await updateDataPoints(dataPoints: newDataPoints)
     }
     
     func calculatePotential(potentialType: String, xMin: Double, xMax: Double, xStep: Double) async {
+        newXArray = []
+        newVArray = []
+        newDataPoints = []
         var count = 0
-        clearPotential()
+        await clearPotential()
         
         switch potentialType {
         case "Square Well":
             startPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             for i in stride(from: xMin+xStep, through: xMax-xStep, by: xStep) {
-                xArray.append(i)
-                VArray.append(0.0)
+                newXArray.append(i)
+                newVArray.append(0.0)
                 
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             finishPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             
         case "Linear Well":
             startPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             for i in stride(from: xMin+xStep, through: xMax-xStep, by: xStep) {
-                xArray.append(i)
-                VArray.append((i-xMin)*4.0*1.3)
+                newXArray.append(i)
+                newVArray.append((i-xMin)*4.0*1.3)
                 
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             finishPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             
         case "Parabolic Well":
             startPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             for i in stride(from: xMin+xStep, through: xMax-xStep, by: xStep) {
-                xArray.append(i)
-                VArray.append((pow((i-(xMax+xMin)/2.0), 2.0)/1.0))
+                newXArray.append(i)
+                newVArray.append((pow((i-(xMax+xMin)/2.0), 2.0)/1.0))
                 
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             finishPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             
         case "Square + Linear Well":
             startPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             for i in stride(from: xMin+xStep, to: (xMax+xMin)/2.0, by: xStep) {
-                xArray.append(i)
-                VArray.append(0.0)
+                newXArray.append(i)
+                newVArray.append(0.0)
                 
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             for i in stride(from: (xMin+xMax)/2.0, through: xMax-xStep, by: xStep) {
-                xArray.append(i)
-                VArray.append(((i-(xMin+xMax)/2.0)*4.0*0.1))
+                newXArray.append(i)
+                newVArray.append(((i-(xMin+xMax)/2.0)*4.0*0.1))
                 
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             finishPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             
         case "Square Barrier":
             startPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             for i in stride(from: xMin+xStep, to: xMin + (xMax-xMin)*0.4, by: xStep) {
-                xArray.append(i)
-                VArray.append(0.0)
+                newXArray.append(i)
+                newVArray.append(0.0)
                 
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             for i in stride(from: xMin + (xMax-xMin)*0.4, to: xMin + (xMax-xMin)*0.6, by: xStep) {
-                xArray.append(i)
-                VArray.append(15.000000001)
+                newXArray.append(i)
+                newVArray.append(15.000000001)
                 
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             for i in stride(from: xMin + (xMax-xMin)*0.6, to: xMax, by: xStep) {
-                xArray.append(i)
-                VArray.append(0.0)
+                newXArray.append(i)
+                newVArray.append(0.0)
                 
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             finishPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             
         case "Triangle Barrier":
             startPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             for i in stride(from: xMin+xStep, to: xMin + (xMax-xMin)*0.4, by: xStep) {
-                xArray.append(i)
-                VArray.append(0.0)
+                newXArray.append(i)
+                newVArray.append(0.0)
 
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             for i in stride(from: xMin + (xMax-xMin)*0.4, to: xMin + (xMax-xMin)*0.5, by: xStep) {
-                xArray.append(i)
-                VArray.append((abs(i-(xMin + (xMax-xMin)*0.4))*3.0))
+                newXArray.append(i)
+                newVArray.append((abs(i-(xMin + (xMax-xMin)*0.4))*3.0))
                             
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             for i in stride(from: xMin + (xMax-xMin)*0.5, to: xMin + (xMax-xMin)*0.6, by: xStep) {
-                xArray.append(i)
-                VArray.append((abs(i-(xMax - (xMax-xMin)*0.4))*3.0))
+                newXArray.append(i)
+                newVArray.append((abs(i-(xMax - (xMax-xMin)*0.4))*3.0))
                             
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             for i in stride(from: xMin + (xMax-xMin)*0.6, to: xMax, by: xStep) {
-                xArray.append(i)
-                VArray.append(0.0)
+                newXArray.append(i)
+                newVArray.append(0.0)
                             
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             finishPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             
         case "Coupled Parabolic Well":
             startPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             for i in stride(from: xMin+xStep, to: xMin + (xMax-xMin)*0.5, by: xStep) {
-                xArray.append(i)
-                VArray.append((pow((i-(xMin+(xMax-xMin)/4.0)), 2.0)))
+                newXArray.append(i)
+                newVArray.append((pow((i-(xMin+(xMax-xMin)/4.0)), 2.0)))
                      
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
                  
             for i in stride(from: xMin + (xMax-xMin)*0.5, through: xMax-xStep, by: xStep) {
-                xArray.append(i)
-                VArray.append((pow((i-(xMax-(xMax-xMin)/4.0)), 2.0)))
+                newXArray.append(i)
+                newVArray.append((pow((i-(xMax-(xMax-xMin)/4.0)), 2.0)))
                      
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             finishPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             
         case "Coupled Square Well + Field":
             startPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             for i in stride(from: xMin+xStep, to: xMin + (xMax-xMin)*0.4, by: xStep) {
-                xArray.append(i)
-                VArray.append(0.0)
+                newXArray.append(i)
+                newVArray.append(0.0)
             }
             for i in stride(from: xMin + (xMax-xMin)*0.4, to: xMin + (xMax-xMin)*0.6, by: xStep) {
-                xArray.append(i)
-                VArray.append(4.0)
+                newXArray.append(i)
+                newVArray.append(4.0)
             }
             for i in stride(from: xMin + (xMax-xMin)*0.6, to: xMax, by: xStep) {
-                xArray.append(i)
-                VArray.append(0.0)
+                newXArray.append(i)
+                newVArray.append(0.0)
             }
-            for i in 1 ..< (xArray.count) {
-                VArray[i] += ((xArray[i]-xMin)*4.0*0.1)
-                let dataPoint: plotDataType = [.X: xArray[i], .Y: VArray[i]]
-                dataPoints.append(dataPoint)
+            for i in 1 ..< (newXArray.count) {
+                newVArray[i] += ((newXArray[i]-xMin)*4.0*0.1)
+                let dataPoint: plotDataType = [.X: newXArray[i], .Y: newVArray[i]]
+                newDataPoints.append(dataPoint)
             }
             finishPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             
@@ -205,12 +215,12 @@ class OneDPotentials: NSObject, ObservableObject {
                     
             startPotential(xMin: xMinHO+xMaxHO, xMax: xMaxHO+xMaxHO, xStep: xStepHO)
             for i in stride(from: xMinHO+xStepHO, through: xMaxHO-xStepHO, by: xStepHO) {
-                xArray.append(i+xMaxHO)
-                VArray.append((pow((i-(xMaxHO+xMinHO)/2.0), 2.0)/15.0))
+                newXArray.append(i+xMaxHO)
+                newVArray.append((pow((i-(xMaxHO+xMinHO)/2.0), 2.0)/15.0))
                         
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             finishPotential(xMin: xMinHO+xMaxHO, xMax: xMaxHO+xMaxHO, xStep: xStepHO)
             
@@ -235,12 +245,12 @@ class OneDPotentials: NSObject, ObservableObject {
                 if ((abs(i-currentBarrierPosition)) < (barrierWidth/2.0)) {
                     inBarrier = true
       
-                    xArray.append(i)
-                    VArray.append(barrierPotential)
+                    newXArray.append(i)
+                    newVArray.append(barrierPotential)
                             
-                    count = xArray.count
-                    let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                    dataPoints.append(dataPoint)
+                    count = newXArray.count
+                    let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                    newDataPoints.append(dataPoint)
                 }
                 else {
                     if (inBarrier) {
@@ -248,20 +258,20 @@ class OneDPotentials: NSObject, ObservableObject {
                         barrierNumber += 1
                     }
                             
-                    xArray.append(i)
-                    VArray.append(0.0)
+                    newXArray.append(i)
+                    newVArray.append(0.0)
                             
-                    count = xArray.count
-                    let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                    dataPoints.append(dataPoint)
+                    count = newXArray.count
+                    let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                    newDataPoints.append(dataPoint)
                 }
             }
                     
-            xArray.append(xMax)
-            VArray.append(5000000.0)
+            newXArray.append(xMax)
+            newVArray.append(5000000.0)
                     
-            let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-            dataPoints.append(dataPoint)
+            let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+            newDataPoints.append(dataPoint)
                     
             /*
             /** Fixes Bug In Plotting Library not displaying the last point **/
@@ -284,11 +294,11 @@ class OneDPotentials: NSObject, ObservableObject {
             // Default to the square well
             startPotential(xMin: xMin, xMax: xMax, xStep: xStep)
             for i in stride(from: xMin+xStep, through: xMax-xStep, by: xStep) {
-                xArray.append(i)
-                VArray.append(0.0)
-                count = xArray.count
-                let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-                dataPoints.append(dataPoint)
+                newXArray.append(i)
+                newVArray.append(0.0)
+                count = newXArray.count
+                let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+                newDataPoints.append(dataPoint)
             }
             finishPotential(xMin: xMin, xMax: xMax, xStep: xStep)
         }
@@ -296,7 +306,7 @@ class OneDPotentials: NSObject, ObservableObject {
     
     /// clearPotential
     /// Sets the arrays for the x values, potentials, and plot data points to empty arrays
-    func clearPotential() {
+    @MainActor func clearPotential() {
         xArray = []
         VArray = []
         dataPoints = []
@@ -304,22 +314,43 @@ class OneDPotentials: NSObject, ObservableObject {
     
     func startPotential(xMin: Double, xMax: Double, xStep: Double) {
         var count = 0
-        xArray.append(xMin)
-        VArray.append(0.0)
+        newXArray.append(xMin)
+        newVArray.append(0.0)
         
-        count = xArray.count
-        let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-        dataPoints.append(dataPoint)
+        count = newXArray.count
+        let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+        newDataPoints.append(dataPoint)
     }
     
     func finishPotential(xMin: Double, xMax: Double, xStep: Double) {
         var count = 0
-        xArray.append(xMax)
-        VArray.append(0.0)
+        newXArray.append(xMax)
+        newVArray.append(0.0)
         
-        count = xArray.count
-        let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
-        dataPoints.append(dataPoint)
+        count = newXArray.count
+        let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+        newDataPoints.append(dataPoint)
+    }
+    
+    /// updateXArray
+    /// The function runs on the main thread so it can update the GUI
+    /// - Parameter xArray: contains the array of x values
+    @MainActor func updateXArray(xArray: [Double]) async {
+        self.xArray = xArray
+    }
+    
+    /// updateVArray
+    /// The function runs on the main thread so it can update the GUI
+    /// - Parameter xArray: contains the array of potential values
+    @MainActor func updateVArray(VArray: [Double]) async {
+        self.VArray = VArray
+    }
+    
+    /// updateDataPoints
+    /// The function runs on the main thread so it can update the GUI
+    /// - Parameter xArray: contains the array of plot data points for the potential vs. x
+    @MainActor func updateDataPoints(dataPoints: [plotDataType]) async {
+        self.dataPoints = dataPoints
     }
     
     func getPlotData() async {
@@ -344,7 +375,7 @@ class OneDPotentials: NSObject, ObservableObject {
     }
     
     func generatePlotData() async {
-        await calculatePotential(potentialType: potentialType, xMin: xMin, xMax: xMax, xStep: xStep)
+        await setPotential()
         await plotDataModel!.appendData(dataPoint: dataPoints)
     }
 }

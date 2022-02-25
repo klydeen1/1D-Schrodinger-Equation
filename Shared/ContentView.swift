@@ -72,7 +72,13 @@ struct ContentView: View {
         await potentialCalculator.setPotential()
         xArray = potentialCalculator.xArray
         VArray = potentialCalculator.VArray
-        // 
+        
+        // Send the x and potential arrays to psiCalculator
+        psiCalculator.xArray = xArray
+        psiCalculator.VArray = VArray
+        
+        // Get the wavefunction result from psiCalculator
+        await psiCalculator.getWavefunction()
     }
     
     @MainActor func setupPlotDataModel() {
