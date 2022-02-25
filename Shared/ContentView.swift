@@ -6,8 +6,14 @@
 //
 
 import SwiftUI
+import CorePlot
+
+typealias plotDataType = [CPTScatterPlotField : Double]
 
 struct ContentView: View {
+    @ObservedObject var potentialCalculator = OneDPotentials(withData: true)
+    @ObservedObject var plotDataModel = PlotDataClass(fromLine: true)
+    
     var body: some View {
         Text("Hello, world!")
             .padding()
