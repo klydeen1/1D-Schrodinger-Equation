@@ -12,7 +12,12 @@ class OneDPotentials: NSObject, ObservableObject {
     @Published var xArray = [Double]() // Array holding x-values for the potential
     @Published var VArray = [Double]() // Array holding the potentials V(x)
     @Published var dataPoints :[plotDataType] =  []
+    @Published var potentialType = "Square Well"
     
+    var xMin = -1.0
+    var xMax = 1.0
+    var xStep = 0.1
+    var hbar2overm = 1.0 // Change this later...
     var plotDataModel: PlotDataClass? = nil
     
     @MainActor init(withData data: Bool) {
@@ -22,8 +27,11 @@ class OneDPotentials: NSObject, ObservableObject {
         dataPoints = []
     }
     
-    func setPotential(potentialType: String, xMin: Double, xMax: Double, xStep: Double) {
-        let hbar2overm = 1.0 // Change this later...
+    func setPotential() async {
+        await calculatePotential(potentialType: potentialType, xMin: xMin, xMax: xMax, xStep: xStep)
+    }
+    
+    func calculatePotential(potentialType: String, xMin: Double, xMax: Double, xStep: Double) async {
         var count = 0
         clearPotential()
         
@@ -312,5 +320,31 @@ class OneDPotentials: NSObject, ObservableObject {
         count = xArray.count
         let dataPoint: plotDataType = [.X: xArray[count-1], .Y: VArray[count-1]]
         dataPoints.append(dataPoint)
+    }
+    
+    func getPlotData() async {
+        // Clear any existing plot data
+        await plotDataModel!.zeroData()
+        
+        // Set x-axis limits
+        await plotDataModel!.changingPlotParameters.xMax = xMax + 0.1
+        await plotDataModel!.changingPlotParameters.xMin = xMin - 0.1
+        // Set y-axis limits
+        await plotDataModel!.changingPlotParameters.yMax = 10.5
+        await plotDataModel!.changingPlotParameters.yMin = -0.1
+            
+        // Set title and other attributes
+        await plotDataModel!.changingPlotParameters.title = potentialType + " Potential"
+        await plotDataModel!.changingPlotParameters.xLabel = "Position"
+        await plotDataModel!.changingPlotParameters.yLabel = "Potential"
+        await plotDataModel!.changingPlotParameters.lineColor = .red()
+            
+        // Get plot data
+        await generatePlotData()
+    }
+    
+    func generatePlotData() async {
+        await calculatePotential(potentialType: potentialType, xMin: xMin, xMax: xMax, xStep: xStep)
+        await plotDataModel!.appendData(dataPoint: dataPoints)
     }
 }

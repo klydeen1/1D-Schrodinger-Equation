@@ -12,6 +12,7 @@ import CorePlot
 class SchrodingerSolver: NSObject, ObservableObject {
     @Published var enableButton = true
     
+    var plotDataModel: PlotDataClass? = nil
     
     
     /// setButton Enable
