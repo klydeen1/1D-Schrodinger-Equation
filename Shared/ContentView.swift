@@ -52,7 +52,11 @@ struct ContentView: View {
                 }
                 
                 HStack {
-                    Button("Cycle Calculation", action: {Task.init{await self.calculateWavefunction()}})
+                    Button("Cycle Calculation", action: {Task.init{await self.calculateFunctions()}})
+                        .padding()
+                        .disabled(psiCalculator.enableButton == false)
+                    
+                    Button("Plot Data", action: {Task.init{await self.generatePlots()}})
                         .padding()
                         .disabled(psiCalculator.enableButton == false)
                     
@@ -95,10 +99,11 @@ struct ContentView: View {
         }
     }
     
-    /// calculateWavefunction
+    /// calculateFunctions
     /// Runs appropriate functions to calculate the potential and wavefunction
     /// Also runs generatePlots to get and display plot data
-    func calculateWavefunction() async {
+    func calculateFunctions() async {
+        let previousPotential = potentialCalculator.potentialType
         // Tell potentialCalculator which potential the user chose
         potentialCalculator.potentialType = selectedPotential
         
@@ -106,7 +111,10 @@ struct ContentView: View {
         psiCalculator.setButtonEnable(state: false)
         
         // Get the arrays for x and potential from potentialCalculator
-        await potentialCalculator.setPotential()
+        // If the user has chosen a new potential, calculate that new potential. Otherwise keep the old values to save some computation time
+        if !(previousPotential == selectedPotential) {
+            await potentialCalculator.setPotential()
+        }
         xArray = potentialCalculator.xArray
         VArray = potentialCalculator.VArray
         
@@ -116,9 +124,6 @@ struct ContentView: View {
         
         // Get the wavefunction result from psiCalculator
         await psiCalculator.getWavefunction()
-        
-        // Plot the results (either the wavefunction or the potential)
-        await self.generatePlots()
         
         // Enable the calculate button
         psiCalculator.setButtonEnable(state: true)
@@ -134,6 +139,11 @@ struct ContentView: View {
     /// generatePlots
     /// Runs the functions to plot either the wavefunction or the potential depending on user selection
     func generatePlots() async {
+        await self.calculateFunctions() // Get the data to plot
+        
+        // Disable the calculate button
+        psiCalculator.setButtonEnable(state: false)
+        
         setupPlotDataModel()
         if (selectedPlot == "Wavefunction") {
             // await psiCalculator.getPlotData()
@@ -146,6 +156,9 @@ struct ContentView: View {
             // Plot the potential
             await potentialCalculator.getPlotData()
         }
+        
+        // Enable the calculate button
+        psiCalculator.setButtonEnable(state: true)
     }
     
     /// clear

@@ -353,6 +353,9 @@ class OneDPotentials: NSObject, ObservableObject {
         self.dataPoints = dataPoints
     }
     
+    /// getPlotData
+    /// Sets plot properties and appends the current value of dataPoints to the plot data model
+    /// Note: This does NOT recalculate the potential. calculatePotential must be used before calling this function in order to get the correct data
     func getPlotData() async {
         // Clear any existing plot data
         await plotDataModel!.zeroData()
@@ -371,11 +374,6 @@ class OneDPotentials: NSObject, ObservableObject {
         await plotDataModel!.changingPlotParameters.lineColor = .red()
             
         // Get plot data
-        await generatePlotData()
-    }
-    
-    func generatePlotData() async {
-        await setPotential()
         await plotDataModel!.appendData(dataPoint: dataPoints)
     }
 }
