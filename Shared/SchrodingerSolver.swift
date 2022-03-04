@@ -17,7 +17,8 @@ class SchrodingerSolver: NSObject, ObservableObject {
     var plotDataModel: PlotDataClass? = nil
     
     func getWavefunction() async {
-        
+        print(xArray[0])
+        print(VArray[0])
     }
     
     /// setButton Enable

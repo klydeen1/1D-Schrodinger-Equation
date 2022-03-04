@@ -12,10 +12,10 @@ class OneDPotentials: NSObject, ObservableObject {
     @Published var xArray = [Double]() // Array holding x-values for the potential
     @Published var VArray = [Double]() // Array holding the potentials V(x)
     @Published var dataPoints :[plotDataType] =  []
-    @Published var potentialType = "Square Well"
     
-    var xMin = -1.0
-    var xMax = 1.0
+    var potentialType = "Square Well"
+    var xMin = 0.0
+    var xMax = 10.0
     var xStep = 0.1
     var hbar2overm = 1.0 // Change this later...
     var newXArray = [Double]()
@@ -358,11 +358,11 @@ class OneDPotentials: NSObject, ObservableObject {
         await plotDataModel!.zeroData()
         
         // Set x-axis limits
-        await plotDataModel!.changingPlotParameters.xMax = xMax + 0.1
-        await plotDataModel!.changingPlotParameters.xMin = xMin - 0.1
+        await plotDataModel!.changingPlotParameters.xMax = xMax + 0.5
+        await plotDataModel!.changingPlotParameters.xMin = xMin - 0.5
         // Set y-axis limits
-        await plotDataModel!.changingPlotParameters.yMax = 10.5
-        await plotDataModel!.changingPlotParameters.yMin = -0.1
+        await plotDataModel!.changingPlotParameters.yMax = 100.5
+        await plotDataModel!.changingPlotParameters.yMin = -0.5
             
         // Set title and other attributes
         await plotDataModel!.changingPlotParameters.title = potentialType + " Potential"
