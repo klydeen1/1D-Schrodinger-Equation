@@ -16,25 +16,45 @@ class SchrodingerSolver: NSObject, ObservableObject {
     
     var xArray = [Double]() // Array holding x-values for the potential
     var VArray = [Double]() // Array holding the potentials V(x)
+    var xStep = 0.0
     var calculatedPsiArray = [Double]()
+    var calculatedPsiPrimeArray = [Double]()
+    var calculatedPsiDoublePrimeArray = [Double]()
     var newDataPoints: [plotDataType] =  []
     var plotDataModel: PlotDataClass? = nil
+    let hBarSquaredOverM = 7.62
+    
+    
     
     /// getWavefunction
     /// Runs functions to calculate the wavefunction and update the wavefunction array and data point array on the main thread
     func getWavefunction() async {
-        await calculateWavefunction()
+        await solveShrodingerWithEuler(E: 3.67)
         await updatePsiArray(psiArray: calculatedPsiArray)
         await updateDataPoints(dataPoints: newDataPoints)
     }
     
-    /// calculateWavefunction
-    /// Calculates the wavefunction values vs. x and sets calculatedPsiArray and dataPoints
-    func calculateWavefunction() async {
-        // Set calculatedPsiArray and dataPoints
+    /// solveShrodingerWithEuler
+    /// Calculates the wavefunction values vs. x and sets calculatedPsiArray and dataPoints at a given energy
+    /// - Parameters:
+    ///   - E: the energy value to solve the equation for
+    func solveShrodingerWithEuler (E: Double) async {
+        let schrodingerConstant = hBarSquaredOverM/2.0
         
-        let xMin = xArray[0]
-        let xMax = xArray[xArray.count - 1]
+        calculatedPsiArray.append(0.0)
+        calculatedPsiPrimeArray.append(1.0)
+        calculatedPsiDoublePrimeArray.append((VArray[0] - E) * 1/schrodingerConstant * calculatedPsiArray[0])
+        let dataPoint: plotDataType = [.X: xArray[0], .Y: calculatedPsiArray[0]]
+        newDataPoints.append(dataPoint)
+        
+        for i in 1..<VArray.count {
+            calculatedPsiArray.append(calculatedPsiArray[i-1] + xStep * calculatedPsiPrimeArray[i-1])
+            calculatedPsiPrimeArray.append(calculatedPsiPrimeArray[i-1] + xStep*calculatedPsiDoublePrimeArray[i-1])
+            calculatedPsiDoublePrimeArray.append((VArray[i] - E) * 1/schrodingerConstant * calculatedPsiArray[i])
+            let dataPoint: plotDataType = [.X: xArray[i], .Y: calculatedPsiArray[i]]
+            newDataPoints.append(dataPoint)
+            print(xArray[i])
+        }
     }
     
     /// updatePsiArray
@@ -62,11 +82,11 @@ class SchrodingerSolver: NSObject, ObservableObject {
         let xMax = xArray[xArray.count - 1]
         
         // Set x-axis limits
-        await plotDataModel!.changingPlotParameters.xMax = xMin + 0.5
-        await plotDataModel!.changingPlotParameters.xMin = xMax - 0.5
+        await plotDataModel!.changingPlotParameters.xMax = xMax + 0.5
+        await plotDataModel!.changingPlotParameters.xMin = xMin - 0.5
         // Set y-axis limits
-        await plotDataModel!.changingPlotParameters.yMax = 100.5
-        await plotDataModel!.changingPlotParameters.yMin = -0.5
+        await plotDataModel!.changingPlotParameters.yMax = 5.0
+        await plotDataModel!.changingPlotParameters.yMin = -5.0
             
         // Set title and other attributes
         await plotDataModel!.changingPlotParameters.title = "Wavefunction Solution"

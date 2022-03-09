@@ -11,13 +11,14 @@ import CorePlot
 class OneDPotentials: NSObject, ObservableObject {
     @Published var xArray = [Double]() // Array holding x-values for the potential
     @Published var VArray = [Double]() // Array holding the potentials V(x)
+    @Published var xStep = 0.1 // Change in x between entries of xArray
     @Published var dataPoints :[plotDataType] =  []
     
     var potentialType = "Square Well"
     var xMin = 0.0
     var xMax = 10.0
-    var xStep = 0.1
-    var hbar2overm = 1.0 // Change this later...
+    //var newXStep = 0.1
+    let hBarSquaredOverM = 7.62
     var newXArray = [Double]()
     var newVArray = [Double]()
     var newDataPoints: [plotDataType] =  []
@@ -35,6 +36,7 @@ class OneDPotentials: NSObject, ObservableObject {
         
         await updateXArray(xArray: newXArray)
         await updateVArray(VArray: newVArray)
+        //await updateXStep(xStep: newXStep)
         await updateDataPoints(dataPoints: newDataPoints)
     }
     
@@ -230,7 +232,7 @@ class OneDPotentials: NSObject, ObservableObject {
                     
             let numberOfBarriers = 10.0
             let boxLength = 10.0
-            let barrierPotential = 100.0*hbar2overm/2.0
+            let barrierPotential = 100.0*hBarSquaredOverM/2.0
             let latticeSpacing = boxLength/numberOfBarriers
             let barrierWidth = 1.0/6.0*latticeSpacing
             var barrierNumber = 1;
@@ -344,6 +346,13 @@ class OneDPotentials: NSObject, ObservableObject {
     /// - Parameter xArray: contains the array of potential values
     @MainActor func updateVArray(VArray: [Double]) async {
         self.VArray = VArray
+    }
+    
+    /// updateXStep
+    /// The function runs on the main thread so it can update the GUI
+    /// - Parameter xStep: the double value representing the x value difference between points in xArray
+    @MainActor func updateXStep(xStep: Double) async {
+        self.xStep = xStep
     }
     
     /// updateDataPoints
