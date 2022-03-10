@@ -18,9 +18,12 @@ struct ContentView: View {
     @State var selectedPotential = "Square Well"
     @State var selectedPlot = "Potential"
     @State var firstTimeRunning = true
+    @State var selectedEnergy = ""
+    @State var selectedEnergyIndex = 0
     
     var plots = ["Potential", "Wavefunction"]
     var potentials = ["Square Well", "Linear Well", "Parabolic Well", "Square + Linear Well", "Square Barrier", "Triangle Barrier", "Coupled Parabolic Well", "Coupled Square Well + Field", "Harmonic Oscillator", "Kronig - Penney"]
+    var energies = [""]
     
     var body: some View {
         HStack{
@@ -49,16 +52,25 @@ struct ContentView: View {
                     }
                 }
                 
+                VStack {
+                    Text("Energy Value")
+                        .font(.callout)
+                        .bold()
+                    Picker("", selection: $selectedEnergy) {
+                        ForEach(energies, id: \.self) {
+                            Text($0)
+                        }
+                    }
+                }
+                
                 HStack {
                     Button("Cycle Calculation", action: {Task.init{await self.calculateFunctions()}})
                         .padding()
                         .disabled(psiCalculator.enableButton == false)
                     
-                    /*
-                    Button("Plot Data", action: {Task.init{await self.generatePlots()}})
+                    Button("Update Plot", action: {Task.init{await self.generatePlots()}})
                         .padding()
                         .disabled(psiCalculator.enableButton == false)
-                    */
                     
                     Button("Clear", action: {self.clear()})
                         .padding()
@@ -130,7 +142,7 @@ struct ContentView: View {
         
         setupPlotDataModel()
         if (selectedPlot == "Wavefunction") {
-            await psiCalculator.getPlotData()
+            await psiCalculator.getPlotDataFromPsiArray(index: selectedEnergyIndex)
         }
         else if (selectedPlot == "Potential") {
             await potentialCalculator.getPlotData()
