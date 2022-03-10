@@ -23,7 +23,7 @@ struct ContentView: View {
     @State var energies = [""]
     
     var plots = ["Potential", "Wavefunction"]
-    var potentials = ["Square Well", "Linear Well", "Parabolic Well", "Square + Linear Well", "Square Barrier", "Triangle Barrier", "Coupled Parabolic Well", "Coupled Square Well + Field", "Harmonic Oscillator", "Kronig - Penney"]
+    var potentials = ["Square Well", "Linear Well", "Parabolic Well", "Square + Linear Well", "Square Barrier", "Triangle Barrier", "Coupled Parabolic Well", "Coupled Square Well + Field", "Harmonic Oscillator", "Kronig - Penney", "KP2-a"]
     
     var body: some View {
         HStack{
@@ -64,7 +64,7 @@ struct ContentView: View {
                 }
                 
                 HStack {
-                    Button("Cycle Calculation", action: {Task.init{await self.calculateFunctions()}})
+                    Button("Calculate Data", action: {Task.init{await self.calculateFunctions()}})
                         .padding()
                         .disabled(psiCalculator.enableButton == false)
                     

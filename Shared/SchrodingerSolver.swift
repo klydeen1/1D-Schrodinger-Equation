@@ -40,17 +40,16 @@ class SchrodingerSolver: NSObject, ObservableObject {
     // Function to find solutions for all valid energies
     func calculateValidWavefunctions() async {
         allValidPsiPlotData = []
-        
         let psiPrecision = 1e-5 // How close the wavefunction must be to 0 for us to be satisfied
         let intervalPrecision = 1e-5 // How small the energy interval can be before we quit
-        let minEnergy = 1.0
-        await solveSchrodingerWithRK4(E: 3.67)
+        let minEnergy = 10.0
+        await solveSchrodingerWithEuler(E: 37.603)
         print(calculatedPsiArray[calculatedPsiArray.count - 1])
-        await solveSchrodingerWithRK4(E: minEnergy)
+        await solveSchrodingerWithEuler(E: minEnergy)
         var leftFinalPsi = calculatedPsiArray[calculatedPsiArray.count - 1]
         var leftEnergy = minEnergy
         
-        let finalBoundaryPoints = await calculatePossibleWavefunctions(eMin: 1.0, eMax: 32.0, eStep: 0.1)
+        let finalBoundaryPoints = await calculatePossibleWavefunctions(eMin: 10.0, eMax: 500.0, eStep: 5.0)
         
         for finalBoundaryPoint in finalBoundaryPoints {
             let newFinalPsi = finalBoundaryPoint.psi
@@ -65,7 +64,7 @@ class SchrodingerSolver: NSObject, ObservableObject {
                 // Find the zero using the false position bracketing method
                 repeat {
                     testEnergy = leftEnergy - leftFinalPsi * (rightEnergy - leftEnergy) / (rightFinalPsi - leftFinalPsi)
-                    await solveSchrodingerWithRK4(E: testEnergy)
+                    await solveSchrodingerWithEuler(E: testEnergy)
                     possibleZero = calculatedPsiArray[calculatedPsiArray.count - 1]
                     if (possibleZero * leftFinalPsi < 0) {
                         // The zero is in the lower subinterval
@@ -94,7 +93,7 @@ class SchrodingerSolver: NSObject, ObservableObject {
                 // We might have duplicate values so we'll filter those out
                 var similarEnergyAlreadyFound = false
                 if !(calculatedValidEnergies.isEmpty) {
-                    let energyPrecision = 1e-3
+                    let energyPrecision = 1e-1
                     for prevEnergy in calculatedValidEnergies {
                         if abs(prevEnergy - testEnergy) < energyPrecision {
                             similarEnergyAlreadyFound = true
@@ -122,7 +121,7 @@ class SchrodingerSolver: NSObject, ObservableObject {
         var finalPointsForBC: [(energy: Double, psi: Double)] = []
         
         for energyVal in stride(from: eMin, through: eMax, by: eStep) {
-            await solveSchrodingerWithRK4(E: energyVal)
+            await solveSchrodingerWithEuler(E: energyVal)
             // possiblePsi.append(calculatedPsiArray)
             // possibleEnergies.append(energyVal)
             let finalPsi = calculatedPsiArray[calculatedPsiArray.count - 1]
