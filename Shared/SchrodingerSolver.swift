@@ -26,8 +26,7 @@ class SchrodingerSolver: NSObject, ObservableObject {
     var newDataPoints: [plotDataType] =  []
     var allValidPsiPlotData: [[plotDataType]] = []
     var plotDataModel: PlotDataClass? = nil
-    let hBarSquaredOverM = 7.62
-    
+    let hBarSquaredOverM = 7.61996423107385308868
     
     /// getWavefunction
     /// Runs functions to calculate the wavefunction and update the wavefunction array and data point array on the main thread
@@ -45,7 +44,9 @@ class SchrodingerSolver: NSObject, ObservableObject {
         let psiPrecision = 1e-5 // How close the wavefunction must be to 0 for us to be satisfied
         let intervalPrecision = 1e-5 // How small the energy interval can be before we quit
         let minEnergy = 1.0
-        await solveShrodingerWithEuler(E: minEnergy)
+        await solveSchrodingerWithRK4(E: 3.67)
+        print(calculatedPsiArray[calculatedPsiArray.count - 1])
+        await solveSchrodingerWithRK4(E: minEnergy)
         var leftFinalPsi = calculatedPsiArray[calculatedPsiArray.count - 1]
         var leftEnergy = minEnergy
         
@@ -64,7 +65,7 @@ class SchrodingerSolver: NSObject, ObservableObject {
                 // Find the zero using the false position bracketing method
                 repeat {
                     testEnergy = leftEnergy - leftFinalPsi * (rightEnergy - leftEnergy) / (rightFinalPsi - leftFinalPsi)
-                    await solveShrodingerWithEuler(E: testEnergy)
+                    await solveSchrodingerWithRK4(E: testEnergy)
                     possibleZero = calculatedPsiArray[calculatedPsiArray.count - 1]
                     if (possibleZero * leftFinalPsi < 0) {
                         // The zero is in the lower subinterval
@@ -116,14 +117,14 @@ class SchrodingerSolver: NSObject, ObservableObject {
     
     // Function to find a solution for all energies within a specified energy range
     func calculatePossibleWavefunctions(eMin: Double, eMax: Double, eStep: Double) async -> [(energy: Double, psi: Double)] {
-        var possiblePsi: [[Double]] = []
-        var possibleEnergies: [Double] = []
+        // var possiblePsi: [[Double]] = []
+        // var possibleEnergies: [Double] = []
         var finalPointsForBC: [(energy: Double, psi: Double)] = []
         
         for energyVal in stride(from: eMin, through: eMax, by: eStep) {
-            await solveShrodingerWithEuler(E: energyVal) // Change the method to RK4 later
-            possiblePsi.append(calculatedPsiArray)
-            possibleEnergies.append(energyVal)
+            await solveSchrodingerWithRK4(E: energyVal)
+            // possiblePsi.append(calculatedPsiArray)
+            // possibleEnergies.append(energyVal)
             let finalPsi = calculatedPsiArray[calculatedPsiArray.count - 1]
             finalPointsForBC.append((energy: energyVal, psi: finalPsi))
         }
@@ -131,12 +132,53 @@ class SchrodingerSolver: NSObject, ObservableObject {
         return finalPointsForBC
     }
     
+    func solveSchrodingerWithRK4(E: Double) async {
+        let h = xStep
+        let schrodingerConstant = hBarSquaredOverM/2.0
+        await setSchrodingerInitialPoints(E: E) // Set points at index 0
+        
+        // Add subsequent points to the arrays using Runge-Kutta 4th Order
+        for i in 1..<VArray.count {
+            let k1 = h*calculatedPsiPrimeArray[i-1]
+            let j1 = h * 1/schrodingerConstant * (VArray[i-1] - E) * (calculatedPsiArray[i-1])
+            
+            let k2 = h*(calculatedPsiPrimeArray[i-1] + j1/2.0)
+            let j2 = h * 1/schrodingerConstant * (VArray[i-1] - E) * (calculatedPsiArray[i-1]+k1/2.0)
+            
+            let k3 = h*(calculatedPsiPrimeArray[i-1] + j2/2.0)
+            let j3 = h * 1/schrodingerConstant * (VArray[i-1] - E) * (calculatedPsiArray[i-1]+k2/2.0)
+            
+            let k4 = h*(calculatedPsiPrimeArray[i-1] + j3)
+            let j4 = h * 1/schrodingerConstant * (VArray[i-1] - E) * (calculatedPsiArray[i-1]+k3)
+            
+            calculatedPsiArray.append(calculatedPsiArray[i-1] + ((k1 + 2.0*k2 + 2.0*k3 + k4)/6.0))
+            calculatedPsiPrimeArray.append(calculatedPsiPrimeArray[i-1] + ((j1 + 2.0*j2 + 2.0*j3 + j4)/6.0))
+            
+            let dataPoint: plotDataType = [.X: xArray[i], .Y: calculatedPsiArray[i]]
+            newDataPoints.append(dataPoint)
+        }
+    }
+    
     /// solveShrodingerWithEuler
-    /// Calculates the wavefunction values vs. x and sets calculatedPsiArray and dataPoints at a given energy
+    /// Calculates the wavefunction values vs. x and sets calculatedPsiArray and dataPoints at a given energy using the Euler method
     /// - Parameters:
     ///   - E: the energy value to solve the equation for
     /// - Returns: the value of the wave equation at the right boundary
-    func solveShrodingerWithEuler (E: Double) async {
+    func solveSchrodingerWithEuler(E: Double) async {
+        let schrodingerConstant = hBarSquaredOverM/2.0
+        await setSchrodingerInitialPoints(E: E) // Set points at index 0
+        
+        // Add subsequent points to the arrays using Euler's method
+        for i in 1..<VArray.count {
+            calculatedPsiArray.append(calculatedPsiArray[i-1] + xStep * calculatedPsiPrimeArray[i-1])
+            calculatedPsiPrimeArray.append(calculatedPsiPrimeArray[i-1] + xStep*calculatedPsiDoublePrimeArray[i-1])
+            calculatedPsiDoublePrimeArray.append((VArray[i] - E) * 1/schrodingerConstant * calculatedPsiArray[i])
+            let dataPoint: plotDataType = [.X: xArray[i], .Y: calculatedPsiArray[i]]
+            newDataPoints.append(dataPoint)
+        }
+    }
+    
+    func setSchrodingerInitialPoints(E: Double) async {
         let schrodingerConstant = hBarSquaredOverM/2.0
         
         // Reset the arrays to empty
@@ -148,18 +190,9 @@ class SchrodingerSolver: NSObject, ObservableObject {
         // Add the first point (x=0) to the arrays
         calculatedPsiArray.append(0.0)
         calculatedPsiPrimeArray.append(1.0)
-        calculatedPsiDoublePrimeArray.append((VArray[0] - E) * 1/schrodingerConstant * calculatedPsiArray[0])
+        calculatedPsiDoublePrimeArray.append(((VArray[0] - E) * 1/schrodingerConstant) * calculatedPsiArray[0])
         let dataPoint: plotDataType = [.X: xArray[0], .Y: calculatedPsiArray[0]]
         newDataPoints.append(dataPoint)
-        
-        // Add subsequent points to the arrays using Euler's method
-        for i in 1..<VArray.count {
-            calculatedPsiArray.append(calculatedPsiArray[i-1] + xStep * calculatedPsiPrimeArray[i-1])
-            calculatedPsiPrimeArray.append(calculatedPsiPrimeArray[i-1] + xStep*calculatedPsiDoublePrimeArray[i-1])
-            calculatedPsiDoublePrimeArray.append((VArray[i] - E) * 1/schrodingerConstant * calculatedPsiArray[i])
-            let dataPoint: plotDataType = [.X: xArray[i], .Y: calculatedPsiArray[i]]
-            newDataPoints.append(dataPoint)
-        }
     }
     
     /// updatePsiArray

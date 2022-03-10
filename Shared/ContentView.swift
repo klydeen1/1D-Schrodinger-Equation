@@ -20,10 +20,10 @@ struct ContentView: View {
     @State var firstTimeRunning = true
     @State var selectedEnergy = ""
     @State var selectedEnergyIndex = 0
+    @State var energies = [""]
     
     var plots = ["Potential", "Wavefunction"]
     var potentials = ["Square Well", "Linear Well", "Parabolic Well", "Square + Linear Well", "Square Barrier", "Triangle Barrier", "Coupled Parabolic Well", "Coupled Square Well + Field", "Harmonic Oscillator", "Kronig - Penney"]
-    var energies = [""]
     
     var body: some View {
         HStack{
@@ -121,6 +121,11 @@ struct ContentView: View {
         // Get the wavefunction result from psiCalculator
         await psiCalculator.getWavefunction()
         
+        self.energies = []
+        for energy in psiCalculator.validEnergyArray {
+            self.energies.append(String(format: "%.1f", energy, " eV"))
+        }
+        
         await generatePlots()
         
         // Enable the calculate button
@@ -139,6 +144,8 @@ struct ContentView: View {
     func generatePlots() async {
         // Disable the calculate button
         psiCalculator.setButtonEnable(state: false)
+        
+        selectedEnergyIndex = energies.firstIndex(of: selectedEnergy) ?? 0
         
         setupPlotDataModel()
         if (selectedPlot == "Wavefunction") {
