@@ -18,7 +18,7 @@ class OneDPotentials: NSObject, ObservableObject {
     var xMin = 0.0
     var xMax = 10.0
     //var newXStep = 0.1
-    let hBarSquaredOverM = 7.62
+    let hBarSquaredOverM = 7.61996423107385308868
     var newXArray = [Double]()
     var newVArray = [Double]()
     var newDataPoints: [plotDataType] =  []
@@ -292,6 +292,69 @@ class OneDPotentials: NSObject, ObservableObject {
             contentArray.removeAll()
             */
             
+        case "KP2-a":
+            var dataPoint: plotDataType = [:]
+            var count = 0
+                    
+            let xMinKP = 0.0
+                    
+            let xStepKP = 0.001
+                    
+            // let numberOfBarriers = 2.0
+            let boxLength = 10.0
+            let barrierPotential = 100.0*hBarSquaredOverM/2.0
+            let latticeSpacing = 1.0 //boxLength/numberOfBarriers
+            let barrierWidth = 1.0/6.0*latticeSpacing
+            var barrierNumber = 1;
+            var currentBarrierPosition = 0.0
+            var inBarrier = false;
+                    
+            let xManKP = boxLength
+                    
+            newXArray.append(xMinKP)
+            newVArray.append(5000000.0)
+            dataPoint = [.X: newXArray[0], .Y: newVArray[0]]
+            newDataPoints.append(dataPoint)
+                    
+            for i in stride(from: xMinKP+xStepKP, through: xManKP-xStepKP, by: xStepKP) {
+                        
+                let term = (-latticeSpacing/2.0) * (pow(-1.0, Double(barrierNumber))) - Double(barrierNumber)*Double(barrierNumber-1) * (pow(-1.0, Double(barrierNumber)))
+                        
+                currentBarrierPosition =  term + Double(barrierNumber)*latticeSpacing*4.0
+                        
+                if( (abs(i-currentBarrierPosition)) < (barrierWidth/2.0)) {
+                            
+                    inBarrier = true
+                            
+                    newXArray.append(i)
+                    newVArray.append(barrierPotential)
+                            
+                    let count = newXArray.count - 1
+                    let dataPoint: plotDataType = [.X: newXArray[count], .Y: newVArray[count]]
+                    newDataPoints.append(dataPoint)
+                            
+                }
+                else {
+                    if (inBarrier){
+                        inBarrier = false
+                        barrierNumber += 1
+                    }
+                            
+                    newXArray.append(i)
+                    newVArray.append(0.0)
+                            
+                    let count = newXArray.count - 1
+                    let dataPoint: plotDataType = [.X: newXArray[count], .Y: newVArray[count]]
+                    newDataPoints.append(dataPoint)
+                }
+            }
+                    
+            count = newXArray.count
+            newXArray.append(xManKP)
+            newVArray.append(5000000.0)
+            dataPoint = [.X: newXArray[count-1], .Y: newVArray[count-1]]
+            newDataPoints.append(dataPoint)
+            
         default:
             // Default to the square well
             startPotential(xMin: xMin, xMax: xMax, xStep: xStep)
@@ -317,7 +380,7 @@ class OneDPotentials: NSObject, ObservableObject {
     func startPotential(xMin: Double, xMax: Double, xStep: Double) {
         var count = 0
         newXArray.append(xMin)
-        newVArray.append(100000.0)
+        newVArray.append(10000000.0)
         
         count = newXArray.count
         let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
@@ -327,7 +390,7 @@ class OneDPotentials: NSObject, ObservableObject {
     func finishPotential(xMin: Double, xMax: Double, xStep: Double) {
         var count = 0
         newXArray.append(xMax)
-        newVArray.append(100000.0)
+        newVArray.append(10000000.0)
         
         count = newXArray.count
         let dataPoint: plotDataType = [.X: newXArray[count-1], .Y: newVArray[count-1]]
@@ -343,7 +406,7 @@ class OneDPotentials: NSObject, ObservableObject {
     
     /// updateVArray
     /// The function runs on the main thread so it can update the GUI
-    /// - Parameter xArray: contains the array of potential values
+    /// - Parameter VArray: contains the array of potential values
     @MainActor func updateVArray(VArray: [Double]) async {
         self.VArray = VArray
     }
