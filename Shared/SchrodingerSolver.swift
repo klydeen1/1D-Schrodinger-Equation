@@ -15,9 +15,15 @@ class SchrodingerSolver: NSObject, ObservableObject {
     @Published var enableButton = true
     @Published var dataPoints :[plotDataType] =  []
     
+    // Variables relating to the potential
     var xArray = [Double]() // Array holding x-values for the potential
     var VArray = [Double]() // Array holding the potentials V(x)
-    var xStep = 0.0
+    var xStep = 0.1
+    
+    // Energy range to search for eigenvalues in
+    var minEnergy = 0.01
+    var maxEnergy = 10.0
+    
     var calculatedPsiArray = [Double]()
     var calculatedPsiPrimeArray = [Double]()
     var calculatedPsiDoublePrimeArray = [Double]()
@@ -37,37 +43,42 @@ class SchrodingerSolver: NSObject, ObservableObject {
         // await updateDataPoints(dataPoints: newDataPoints)
     }
     
-    // Function to find solutions for all valid energies
+    /// calculateValidWavefunctions
+    /// Function to find energy eigenvalues within a given energy range as well as the wavefunctions for those energies
+    /// Solutions are for wells so the wavefunction at the right boundary must be very close to 0 if the solution is valid
+    /// Zeros are found using the false position boundary method
     func calculateValidWavefunctions() async {
         allValidPsiPlotData = []
+        calculatedValidEnergies = []
         let psiPrecision = 1e-4 // How close the wavefunction must be to 0 for us to be satisfied
         // let intervalPrecision = 1e-6 // How small the energy interval can be before we quit
-        let minEnergy = 0.01
-        let maxEnergy = 10.0
         let energyStep = (maxEnergy - minEnergy)/200.0
-        await solveSchrodingerWithEuler(E: minEnergy)
-        var leftFinalPsi = calculatedPsiArray[calculatedPsiArray.count - 1]
-        var leftEnergy = minEnergy
-        var leftSign = leftFinalPsi.sign
-        let finalBoundaryPoints = await calculatePossibleWavefunctions(eMin: minEnergy, eMax: maxEnergy, eStep: energyStep)
+        await solveSchrodingerWithEuler(E: minEnergy) // Find the starting wavefunction
+        var leftFinalPsi = calculatedPsiArray[calculatedPsiArray.count - 1] // Psi value at right boundary for the starting wavefunction
+        var leftEnergy = minEnergy // Energy of the left boundary to search for zeroes
+        var leftSign = leftFinalPsi.sign // Sign of the final psi value at the left boundary
+        let finalBoundaryPoints = await calculatePossibleWavefunctions(eMin: minEnergy, eMax: maxEnergy, eStep: energyStep) // Energy and psi at the right boundary for all energies within specified range
         
+        // Check all of our energy values
         for finalBoundaryPoint in finalBoundaryPoints {
-            let newFinalPsi = finalBoundaryPoint.psi
+            let newFinalPsi = finalBoundaryPoint.psi // Psi value at the right boundary for the energy we're checking
             var rightFinalPsi = newFinalPsi
-            let newEnergyVal = finalBoundaryPoint.energy
-            
+            let newEnergyVal = finalBoundaryPoint.energy // Energy level that we're checking
             let rightSign = rightFinalPsi.sign
+            
             // Find regions where the value of finalPsi has crossed through 0
             if (leftSign != rightSign) {
                 var rightEnergy = newEnergyVal
-                var possibleZero: Double
+                var possibleZero: Double // Right boundary psi value at the energy value we're checking
                 var testEnergy: Double
                 var count = 1
                 // Find the zero using the false position bracketing method
                 repeat {
+                    // Adjust our best guess for the zero
                     testEnergy = leftEnergy - leftFinalPsi * (rightEnergy - leftEnergy) / (rightFinalPsi - leftFinalPsi)
                     await solveSchrodingerWithEuler(E: testEnergy)
                     possibleZero = calculatedPsiArray[calculatedPsiArray.count - 1]
+                    
                     if (possibleZero * leftFinalPsi < 0) {
                         // The zero is in the lower subinterval
                         rightEnergy = testEnergy // Shift the right barrier to get the new boundary
@@ -82,6 +93,8 @@ class SchrodingerSolver: NSObject, ObservableObject {
                         // possibleZero is the exact zero (highly unlikely)
                         break;
                     }
+                    
+                    // Safety measure to prevent infinite loops
                     count+=1
                     if count > 2000 {
                         break;
@@ -91,9 +104,10 @@ class SchrodingerSolver: NSObject, ObservableObject {
                 
                 // To look for future zeroes, we only want to look to the right of the zero we just found
                 leftEnergy = testEnergy
+                // We've passed a zero so the sign that we're comparing to flips
                 leftSign = rightSign
                 
-                // We might have duplicate values so we'll filter those out
+                // Filter out any extremely similar energy eigenvalues to avoid duplicates
                 var similarEnergyAlreadyFound = false
                 if !(calculatedValidEnergies.isEmpty) {
                     let energyPrecision = 1e-1
@@ -117,16 +131,19 @@ class SchrodingerSolver: NSObject, ObservableObject {
         }
     }
     
-    // Function to find a solution for all energies within a specified energy range
+    /// calculatePossibleWavefunctions
+    /// Function to find a solution for psi for each energy within a specified energy range
+    /// - Parameters:
+    ///   - eMin: minimum energy in eV
+    ///   - eMax: maximum energy in eV
+    ///   - eStep: space between each energy value in the range
+    /// - returns: a tuple containing the energy and the psi value at the right boundary (x=xMax). This is used for evaluating the boundary conditions
     func calculatePossibleWavefunctions(eMin: Double, eMax: Double, eStep: Double) async -> [(energy: Double, psi: Double)] {
-        // var possiblePsi: [[Double]] = []
-        // var possibleEnergies: [Double] = []
         var finalPointsForBC: [(energy: Double, psi: Double)] = []
         
         for energyVal in stride(from: eMin, through: eMax, by: eStep) {
             await solveSchrodingerWithEuler(E: energyVal)
-            // possiblePsi.append(calculatedPsiArray)
-            // possibleEnergies.append(energyVal)
+
             let finalPsi = calculatedPsiArray[calculatedPsiArray.count - 1]
             finalPointsForBC.append((energy: energyVal, psi: finalPsi))
         }
@@ -134,6 +151,10 @@ class SchrodingerSolver: NSObject, ObservableObject {
         return finalPointsForBC
     }
     
+    /// solveSchrodingerWithRK4
+    /// Calculates the wavefunction values vs. x and sets calculatedPsiArray and newDataPoints at a given energy using Runge-Kutta 4th order
+    /// - Parameters:
+    ///   - E: the energy value in eV used to calculate the wavefunction
     func solveSchrodingerWithRK4(E: Double) async {
         let h = xStep
         let schrodingerConstant = hBarSquaredOverM/2.0
@@ -161,10 +182,10 @@ class SchrodingerSolver: NSObject, ObservableObject {
         }
     }
     
-    /// solveShrodingerWithEuler
-    /// Calculates the wavefunction values vs. x and sets calculatedPsiArray and dataPoints at a given energy using the Euler method
+    /// solveSchrodingerWithEuler
+    /// Calculates the wavefunction values vs. x and sets calculatedPsiArray and newDataPoints at a given energy using the Euler method
     /// - Parameters:
-    ///   - E: the energy value to solve the equation for in units of eV
+    ///   - E: the energy value in eV used to calculate the wavefunction
     func solveSchrodingerWithEuler(E: Double) async {
         let schrodingerConstant = hBarSquaredOverM/2.0
         await setSchrodingerInitialPoints(E: E) // Set points at index 0
@@ -179,6 +200,11 @@ class SchrodingerSolver: NSObject, ObservableObject {
         }
     }
     
+    /// setSchrodingerInitialPoints
+    /// Sets the values of psi, psi', and psi'' at index 0 and adds them to a plot data array
+    /// Solutions are for wells so the psi value at this index is 0
+    /// - Parameters:
+    ///   - E: the energy value in eV used for the calculations
     func setSchrodingerInitialPoints(E: Double) async {
         let schrodingerConstant = hBarSquaredOverM/2.0
         
@@ -196,16 +222,16 @@ class SchrodingerSolver: NSObject, ObservableObject {
         newDataPoints.append(dataPoint)
     }
     
-    /// updatePsiArray
+    /// updatePsiArrays
     /// The function runs on the main thread so it can update the GUI
     /// - Parameter psiArray: contains the array of wavefunction values
     @MainActor func updatePsiArrays(psiArray: [[Double]]) async {
         self.validPsiArrays = psiArray
     }
     
-    /// updatePsiArray
+    /// updateValidEnergies
     /// The function runs on the main thread so it can update the GUI
-    /// - Parameter psiArray: contains the array of wavefunction arrays
+    /// - Parameter validEnergyArray: contains the array of energy eigenvalues
     @MainActor func updateValidEnergies(energyArray: [Double]) async {
         self.validEnergyArray = energyArray
     }
@@ -240,10 +266,15 @@ class SchrodingerSolver: NSObject, ObservableObject {
         await plotDataModel!.changingPlotParameters.yLabel = "Psi"
         await plotDataModel!.changingPlotParameters.lineColor = .red()
             
-        // Get plot data
+        // Plot the data
         await plotDataModel!.appendData(dataPoint: dataPoints)
     }
     
+    /// getPlotDataFromPsiArray
+    /// Plots the data of the array at the passed index in allValidPsiPlotData. This data is the solution of psi at the energy eigenvalue
+    /// associated with the index. Checks if there is no data and defaults to index 0
+    /// - Parameters:
+    ///   - index: the array index for the data that will be plotted
     func getPlotDataFromPsiArray(index: Int) async {
         if (index > -1 && index < allValidPsiPlotData.count) { // This is a valid index
             // Plot the data at the given index

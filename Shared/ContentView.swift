@@ -15,22 +15,60 @@ struct ContentView: View {
     @ObservedObject var psiCalculator = SchrodingerSolver()
     @ObservedObject var plotDataModel = PlotDataClass(fromLine: true)
     
+    // User inputted variables
     @State var minEnergyString = "0.01"
     @State var maxEnergyString = "10.0"
+    @State var wellSizeString = "10.0"
+    @State var xStepString = "0.1"
+    
+    // Dropdown menu selections
     @State var selectedPotential = "Square Well"
     @State var selectedPlot = "Wavefunction"
-    @State var firstTimeRunning = true
     @State var selectedEnergy = ""
     @State var selectedEnergyIndex = 0
     @State var energies = [""]
-    
     var plots = ["Potential", "Wavefunction"]
     var potentials = ["Square Well", "Linear Well", "Parabolic Well", "Square + Linear Well", "Square Barrier", "Triangle Barrier", "Coupled Parabolic Well", "Coupled Square Well + Field", "Harmonic Oscillator", "Kronig - Penney", "KP2-a"]
     
     var body: some View {
         HStack{
             VStack{
-                // Text boxes to set xMin, xMax, and xStep for the potential
+                HStack {
+                    VStack(alignment: .center) {
+                        Text("Well Size (A)")
+                            .font(.callout)
+                            .bold()
+                        TextField("# Well Size (A)", text: $wellSizeString)
+                            .padding()
+                    }
+                    
+                    VStack(alignment: .center) {
+                        Text("Spacing Between x Values")
+                            .font(.callout)
+                            .bold()
+                        TextField("# Spacing Between x Values", text: $xStepString)
+                            .padding()
+                    }
+                }
+                
+                HStack {
+                    VStack(alignment: .center) {
+                        Text("Minimum Energy (eV)")
+                            .font(.callout)
+                            .bold()
+                        TextField("# Minimum Energy (eV)", text: $minEnergyString)
+                            .padding()
+                    }
+                    
+                    VStack(alignment: .center) {
+                        Text("Maximum Energy (eV)")
+                            .font(.callout)
+                            .bold()
+                        TextField("# Maximum Energy (eV)", text: $maxEnergyString)
+                            .padding()
+                    }
+                }
+                
                 // Drop down menu (picker) for setting the potential
                 VStack {
                     Text("Potential Type")
@@ -55,7 +93,7 @@ struct ContentView: View {
                 }
                 
                 VStack {
-                    Text("Energy Value")
+                    Text("Energy Value (eV)")
                         .font(.callout)
                         .bold()
                     Picker("", selection: $selectedEnergy) {
@@ -100,7 +138,7 @@ struct ContentView: View {
     /// Runs appropriate functions to calculate the potential and wavefunction
     /// Also runs generatePlots to get and display plot data
     func calculateFunctions() async {
-        let previousPotential = potentialCalculator.potentialType
+        self.energies = [""] // Clear the energy array
         
         // Tell potentialCalculator which potential the user chose
         potentialCalculator.potentialType = selectedPotential
@@ -108,26 +146,32 @@ struct ContentView: View {
         // Disable the calculate button
         psiCalculator.setButtonEnable(state: false)
         
-        // Get the arrays for x and potential from potentialCalculator
-        // If the user has chosen a new potential, calculate that new potential. Otherwise keep the old values to save some computation time
-        if (previousPotential != selectedPotential || firstTimeRunning) {
-            await potentialCalculator.setPotential()
-            firstTimeRunning = false
-        }
+        // Send the well size and xStep to potentialCalculator
+        potentialCalculator.xMax = Double(wellSizeString)!
+        potentialCalculator.xStep = Double(xStepString)!
         
-        // Send the x and potential arrays as well as xStep to psiCalculator
+        // Get the arrays for x and the potential from potentialCalculator
+        await potentialCalculator.setPotential()
+        
+        // Send the x and potential arrays to psiCalculator
         psiCalculator.xArray = potentialCalculator.xArray
         psiCalculator.VArray = potentialCalculator.VArray
-        psiCalculator.xStep = potentialCalculator.xStep
+        
+        // Send user-inputted variables to psiCalculator (except well size which is extracted from xArray instead)
+        psiCalculator.xStep = Double(xStepString)!
+        psiCalculator.minEnergy = Double(minEnergyString)!
+        psiCalculator.maxEnergy = Double(maxEnergyString)!
         
         // Get the wavefunction result from psiCalculator
         await psiCalculator.getWavefunction()
         
+        // Set the array of energy eigenvalues used for the picker
         self.energies = []
         for energy in psiCalculator.validEnergyArray {
-            self.energies.append(String(format: "%.3f", energy, " eV"))
+            self.energies.append(String(format: "%.3f", energy))
         }
         
+        // Plot the data
         await generatePlots()
         
         // Enable the calculate button
@@ -143,13 +187,16 @@ struct ContentView: View {
     
     /// generatePlots
     /// Runs the functions to plot either the wavefunction or the potential depending on user selection
+    /// This does not update any data except for the plot type. When choosing different parameters such as potential type, calculateFunctions must be called first
     func generatePlots() async {
         // Disable the calculate button
         psiCalculator.setButtonEnable(state: false)
         
+        // Get the index of the chosen energy eigenvalue
         selectedEnergyIndex = energies.firstIndex(of: selectedEnergy) ?? 0
         
         setupPlotDataModel()
+        
         if (selectedPlot == "Wavefunction") {
             await psiCalculator.getPlotDataFromPsiArray(index: selectedEnergyIndex)
         }
@@ -162,10 +209,10 @@ struct ContentView: View {
     }
     
     /// clear
-    /// Resets the potential arrays to all 0 and clears the plot display
-    func clear() {
-        potentialCalculator.clearPotential()
+    /// Clears the plot display and empties the array of energies listed in the dropdown menu
+    @MainActor func clear() {
         plotDataModel.zeroData()
+        self.energies = [""]
     }
 }
 

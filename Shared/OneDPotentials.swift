@@ -11,12 +11,12 @@ import CorePlot
 class OneDPotentials: NSObject, ObservableObject {
     @Published var xArray = [Double]() // Array holding x-values for the potential
     @Published var VArray = [Double]() // Array holding the potentials V(x)
-    @Published var xStep = 0.1 // Change in x between entries of xArray
     @Published var dataPoints :[plotDataType] =  []
     
     var potentialType = "Square Well"
     var xMin = 0.0
     var xMax = 10.0
+    var xStep = 0.1
     //var newXStep = 0.1
     let hBarSquaredOverM = 7.61996423107385308868
     var newXArray = [Double]()
@@ -372,9 +372,9 @@ class OneDPotentials: NSObject, ObservableObject {
     /// clearPotential
     /// Sets the arrays for the x values, potentials, and plot data points to empty arrays
     @MainActor func clearPotential() {
-        xArray = []
-        VArray = []
-        dataPoints = []
+        self.xArray = []
+        self.VArray = []
+        self.dataPoints = []
     }
     
     func startPotential(xMin: Double, xMax: Double, xStep: Double) {
