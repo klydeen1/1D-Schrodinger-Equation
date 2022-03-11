@@ -53,7 +53,7 @@ class SchrodingerSolver: NSObject, ObservableObject {
         let psiPrecision = 1e-4 // How close the wavefunction must be to 0 for us to be satisfied
         // let intervalPrecision = 1e-6 // How small the energy interval can be before we quit
         let energyStep = (maxEnergy - minEnergy)/200.0
-        await solveSchrodingerWithEuler(E: minEnergy) // Find the starting wavefunction
+        await solveSchrodingerWithRK4(E: minEnergy) // Find the starting wavefunction
         var leftFinalPsi = calculatedPsiArray[calculatedPsiArray.count - 1] // Psi value at right boundary for the starting wavefunction
         var leftEnergy = minEnergy // Energy of the left boundary to search for zeroes
         var leftSign = leftFinalPsi.sign // Sign of the final psi value at the left boundary
@@ -76,7 +76,7 @@ class SchrodingerSolver: NSObject, ObservableObject {
                 repeat {
                     // Adjust our best guess for the zero
                     testEnergy = leftEnergy - leftFinalPsi * (rightEnergy - leftEnergy) / (rightFinalPsi - leftFinalPsi)
-                    await solveSchrodingerWithEuler(E: testEnergy)
+                    await solveSchrodingerWithRK4(E: testEnergy)
                     possibleZero = calculatedPsiArray[calculatedPsiArray.count - 1]
                     
                     if (possibleZero * leftFinalPsi < 0) {
@@ -142,7 +142,7 @@ class SchrodingerSolver: NSObject, ObservableObject {
         var finalPointsForBC: [(energy: Double, psi: Double)] = []
         
         for energyVal in stride(from: eMin, through: eMax, by: eStep) {
-            await solveSchrodingerWithEuler(E: energyVal)
+            await solveSchrodingerWithRK4(E: energyVal)
 
             let finalPsi = calculatedPsiArray[calculatedPsiArray.count - 1]
             finalPointsForBC.append((energy: energyVal, psi: finalPsi))
@@ -216,7 +216,7 @@ class SchrodingerSolver: NSObject, ObservableObject {
         
         // Add the first point (x=0) to the arrays
         calculatedPsiArray.append(0.0)
-        calculatedPsiPrimeArray.append(1.5)
+        calculatedPsiPrimeArray.append(5e-8) // This needs to change if the method (Euler vs. RK4) is changed
         calculatedPsiDoublePrimeArray.append(((VArray[0] - E) * 1/schrodingerConstant) * calculatedPsiArray[0])
         let dataPoint: plotDataType = [.X: xArray[0], .Y: calculatedPsiArray[0]]
         newDataPoints.append(dataPoint)
