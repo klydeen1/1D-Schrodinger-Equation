@@ -15,8 +15,10 @@ struct ContentView: View {
     @ObservedObject var psiCalculator = SchrodingerSolver()
     @ObservedObject var plotDataModel = PlotDataClass(fromLine: true)
     
+    @State var minEnergyString = "0.01"
+    @State var maxEnergyString = "10.0"
     @State var selectedPotential = "Square Well"
-    @State var selectedPlot = "Potential"
+    @State var selectedPlot = "Wavefunction"
     @State var firstTimeRunning = true
     @State var selectedEnergy = ""
     @State var selectedEnergyIndex = 0
@@ -123,7 +125,7 @@ struct ContentView: View {
         
         self.energies = []
         for energy in psiCalculator.validEnergyArray {
-            self.energies.append(String(format: "%.1f", energy, " eV"))
+            self.energies.append(String(format: "%.3f", energy, " eV"))
         }
         
         await generatePlots()
