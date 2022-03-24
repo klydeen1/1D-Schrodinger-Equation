@@ -19,7 +19,7 @@ struct ContentView: View {
     @State var minEnergyString = "0.01"
     @State var maxEnergyString = "10.0"
     @State var wellSizeString = "10.0"
-    @State var xStepString = "0.1"
+    @State var xStepString = "0.01"
     
     // Dropdown menu selections
     @State var selectedPotential = "Square Well"
